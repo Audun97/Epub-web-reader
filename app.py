@@ -1,16 +1,20 @@
-from flask import Flask, render_template, jsonify
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from ebooklib import epub
-import ebooklib
+from fastapi.staticfiles import StaticFiles
 
-app = Flask(__name__)
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
-@app.route('/')
-def index():
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
     # Render the reader template
-    return render_template('reader.html')
+    return templates.TemplateResponse("reader.html", {"request": request})
 
-@app.route('/chapters')
-def chapters():
+@app.get("/chapters")
+async def chapters():
     # Read the EPUB file
     book = epub.read_epub('samples/test.epub')
 
@@ -39,13 +43,4 @@ def chapters():
     for chapter in chapters_list:
         print(f"Chapter index: {chapter['index']}, title: {chapter['title']}, level: {chapter['level']}")
 
-    return jsonify(chapters_list)
-
-@app.route('/chapter/<int:chapter_index>')
-def chapter(chapter_index):
-    # TODO: Retrieve the chapter content based on the chapter_index
-    chapter_content = '<h2>Chapter {}</h2><p>Content of the chapter goes here...</p>'.format(chapter_index + 1)
-    return jsonify({'content': chapter_content})
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    return chapters_list
